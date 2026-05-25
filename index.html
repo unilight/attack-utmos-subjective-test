@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speech Quality Listening Test</title>
+  <style>
+    :root { font-family: Arial, Helvetica, sans-serif; line-height: 1.5; color: #1f2933; background: #f6f7f9; }
+    body { margin: 0; }
+    main { max-width: 760px; margin: 0 auto; padding: 28px 18px 48px; }
+    section { background: #fff; border: 1px solid #d8dee7; border-radius: 6px; padding: 20px; margin-bottom: 16px; }
+    h1 { margin: 0 0 12px; font-size: 28px; }
+    h2 { margin: 0 0 10px; font-size: 18px; }
+    label { display: block; margin: 8px 0; }
+    input[type="text"] { width: min(420px, 100%); box-sizing: border-box; padding: 9px 10px; border: 1px solid #b8c2cc; border-radius: 4px; font-size: 16px; }
+    button { min-height: 38px; padding: 8px 14px; border: 1px solid #244766; border-radius: 4px; background: #2d5f87; color: #fff; font-size: 15px; cursor: pointer; }
+    button.secondary { color: #244766; background: #fff; }
+    button:disabled { cursor: not-allowed; opacity: 0.48; }
+    audio { width: 100%; margin: 12px 0 8px; }
+    .hidden { display: none; }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .muted { color: #52606d; }
+    .rating { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 14px 0; }
+    .rating label { margin: 0; padding: 10px 8px; border: 1px solid #b8c2cc; border-radius: 4px; text-align: center; cursor: pointer; }
+    .rating input { display: block; margin: 0 auto 5px; }
+    #status { min-height: 24px; margin-top: 10px; }
+    @media (max-width: 520px) { .rating { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section id="instructions">
+      <h1>Speech Quality Listening Test</h1>
+      <h2>Procedure</h2>
+      <ol>
+        <li>Enter your name or listener ID.</li>
+        <li>Listen to each speech sample using headphones.</li>
+        <li>Rate the overall speech quality from 1 to 5.</li>
+        <li>When finished, the page will submit your responses and download a CSV backup.</li>
+      </ol>
+      <p class="muted">You can close this page and return later on the same browser and device.</p>
+    </section>
+
+    <section id="setup">
+      <label>
+        Listener name or ID
+        <input type="text" id="listener-id" autocomplete="name">
+      </label>
+      <div class="row">
+        <button id="start-button" type="button">Start Test</button>
+        <button id="resume-button" class="secondary hidden" type="button">Resume Saved Test</button>
+        <button id="clear-button" class="secondary hidden" type="button">Clear Saved Test</button>
+      </div>
+      <p id="saved-summary" class="muted"></p>
+    </section>
+
+    <section id="test" class="hidden">
+      <div class="row muted">
+        <span id="progress"></span>
+        <span id="elapsed"></span>
+      </div>
+      <audio id="audio" controls preload="auto"></audio>
+      <h2>Overall speech quality</h2>
+      <div class="rating" id="rating">
+        <label><input type="radio" name="score" value="1">1<br>Bad</label>
+        <label><input type="radio" name="score" value="2">2<br>Poor</label>
+        <label><input type="radio" name="score" value="3">3<br>Fair</label>
+        <label><input type="radio" name="score" value="4">4<br>Good</label>
+        <label><input type="radio" name="score" value="5">5<br>Excellent</label>
+      </div>
+      <div class="row">
+        <button id="prev-button" class="secondary" type="button">Previous</button>
+        <button id="next-button" type="button">Next</button>
+        <button id="finish-button" type="button">Finish</button>
+      </div>
+      <p id="status" class="muted"></p>
+    </section>
+  </main>
+  <script src="config.js"></script>
+  <script src="manifest.js"></script>
+  <script src="mos.js"></script>
+</body>
+</html>
