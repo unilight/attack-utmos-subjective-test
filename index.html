@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Speech Quality Listening Test</title>
+  <title></title>
   <style>
     :root { font-family: Arial, Helvetica, sans-serif; line-height: 1.5; color: #1f2933; background: #f6f7f9; }
     body { margin: 0; }
@@ -18,65 +18,84 @@
     button:disabled { cursor: not-allowed; opacity: 0.48; }
     audio { width: 100%; margin: 12px 0 8px; }
     .hidden { display: none; }
+    .topbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+    .language-toggle { min-width: 112px; font-weight: 700; background: #111827; border-color: #111827; }
     .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
     .muted { color: #52606d; }
     .rating { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 14px 0; }
     .rating label { margin: 0; padding: 10px 8px; border: 1px solid #b8c2cc; border-radius: 4px; text-align: center; cursor: pointer; }
     .rating input { display: block; margin: 0 auto 5px; }
     #status { min-height: 24px; margin-top: 10px; }
-    @media (max-width: 520px) { .rating { grid-template-columns: 1fr; } }
+    .progress-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 8px; }
+    progress { width: 100%; height: 14px; accent-color: #2d5f87; }
+    .help { background: #f8fafc; border: 1px solid #d8dee7; border-radius: 4px; padding: 12px 14px; margin: 14px 0; }
+    .help p { margin: 0 0 8px; }
+    .help p:last-child { margin-bottom: 0; }
+    kbd { padding: 1px 5px; border: 1px solid #a7b3c2; border-bottom-width: 2px; border-radius: 3px; background: #fff; font-family: Arial, Helvetica, sans-serif; font-size: 0.92em; }
+    @media (max-width: 520px) { .rating { grid-template-columns: 1fr; } .progress-head { display: block; } }
   </style>
 </head>
 <body>
   <main>
+    <div class="topbar">
+      <button id="language-toggle" class="language-toggle" type="button" data-i18n="languageToggle"></button>
+    </div>
+
     <section id="instructions">
-      <h1>Speech Quality Listening Test</h1>
-      <h2>Procedure</h2>
+      <h1 data-i18n="heading"></h1>
+      <h2 data-i18n="procedureHeading"></h2>
       <ol>
-        <li>Enter your name or listener ID.</li>
-        <li>Listen to each speech sample using headphones.</li>
-        <li>Rate the overall speech quality from 1 to 5.</li>
-        <li>When finished, the page will submit your responses and download a CSV backup.</li>
+        <li data-i18n="procedure1"></li>
+        <li data-i18n="procedure2"></li>
+        <li data-i18n="procedure3"></li>
+        <li data-i18n="procedure4"></li>
       </ol>
-      <p class="muted">You can close this page and return later on the same browser and device.</p>
+      <p class="muted" data-i18n="resumeNote"></p>
+      <p class="muted" data-i18n="submitNote"></p>
     </section>
 
     <section id="setup">
       <label>
-        Listener name or ID
+        <span data-i18n="listenerLabel"></span>
         <input type="text" id="listener-id" autocomplete="name">
       </label>
       <div class="row">
-        <button id="start-button" type="button">Start Test</button>
-        <button id="resume-button" class="secondary hidden" type="button">Resume Saved Test</button>
-        <button id="clear-button" class="secondary hidden" type="button">Clear Saved Test</button>
+        <button id="start-button" type="button" data-i18n="startButton"></button>
+        <button id="resume-button" class="secondary hidden" type="button" data-i18n="resumeButton"></button>
+        <button id="clear-button" class="secondary hidden" type="button" data-i18n="clearButton"></button>
       </div>
       <p id="saved-summary" class="muted"></p>
     </section>
 
     <section id="test" class="hidden">
-      <div class="row muted">
-        <span id="progress"></span>
+      <div class="progress-head muted">
+        <span id="progress-text"></span>
         <span id="elapsed"></span>
       </div>
+      <progress id="progress-bar" value="0" max="1"></progress>
+      <div class="help">
+        <p data-i18n="shortcutHelp"></p>
+        <p data-i18n="listenHelp"></p>
+      </div>
       <audio id="audio" controls preload="auto"></audio>
-      <h2>Overall speech quality</h2>
+      <h2 data-i18n="ratingHeading"></h2>
       <div class="rating" id="rating">
-        <label><input type="radio" name="score" value="1">1<br>Bad</label>
-        <label><input type="radio" name="score" value="2">2<br>Poor</label>
-        <label><input type="radio" name="score" value="3">3<br>Fair</label>
-        <label><input type="radio" name="score" value="4">4<br>Good</label>
-        <label><input type="radio" name="score" value="5">5<br>Excellent</label>
+        <label><input type="radio" name="score" value="1">1<br><span data-i18n="rating1"></span></label>
+        <label><input type="radio" name="score" value="2">2<br><span data-i18n="rating2"></span></label>
+        <label><input type="radio" name="score" value="3">3<br><span data-i18n="rating3"></span></label>
+        <label><input type="radio" name="score" value="4">4<br><span data-i18n="rating4"></span></label>
+        <label><input type="radio" name="score" value="5">5<br><span data-i18n="rating5"></span></label>
       </div>
       <div class="row">
-        <button id="prev-button" class="secondary" type="button">Previous</button>
-        <button id="next-button" type="button">Next</button>
-        <button id="finish-button" type="button">Finish</button>
+        <button id="prev-button" class="secondary" type="button" data-i18n="previousButton"></button>
+        <button id="next-button" type="button" data-i18n="nextButton"></button>
+        <button id="finish-button" type="button" data-i18n="finishButton"></button>
       </div>
       <p id="status" class="muted"></p>
     </section>
   </main>
   <script src="config.js"></script>
+  <script src="i18n.js"></script>
   <script src="manifest.js"></script>
   <script src="mos.js"></script>
 </body>

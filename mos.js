@@ -2,18 +2,62 @@
   "use strict";
 
   const STORAGE_KEY = "utmos_quality_test_v2";
+  const LANGUAGE_KEY = "utmos_quality_test_language";
   const CSV_COLUMNS = ["session_id", "listener_id", "started_at", "finished_at", "item_index", "sample_id", "system_id", "system_label", "audio_path", "score", "rated_at"];
   const state = { sessionId: "", listenerId: "", startedAt: "", finishedAt: "", order: [], scores: {}, ratedAt: {}, index: 0 };
   const el = {};
   let elapsedTimer = null;
+  let language = "en";
 
   document.addEventListener("DOMContentLoaded", function () {
     bindElements();
+    language = loadLanguage();
+    applyLanguage();
     bindEvents();
     showSavedSession();
   });
 
+
+  function loadLanguage() {
+    const saved = localStorage.getItem(LANGUAGE_KEY);
+    return saved === "ja" ? "ja" : "en";
+  }
+
+  function toggleLanguage() {
+    language = language === "en" ? "ja" : "en";
+    localStorage.setItem(LANGUAGE_KEY, language);
+    applyLanguage();
+    showSavedSession();
+    if (!el.test.classList.contains("hidden")) {
+      renderItem();
+    }
+  }
+
+  function applyLanguage() {
+    const strings = window.I18N_TEXT[language] || window.I18N_TEXT.en;
+    document.documentElement.lang = strings.htmlLang || language;
+    document.title = strings.pageTitle;
+    document.querySelectorAll("[data-i18n]").forEach(function (node) {
+      const key = node.getAttribute("data-i18n");
+      if (strings[key]) {
+        node.textContent = strings[key];
+      }
+    });
+  }
+
+  function t(key) {
+    const strings = window.I18N_TEXT[language] || window.I18N_TEXT.en;
+    return strings[key] || window.I18N_TEXT.en[key] || key;
+  }
+
+  function formatText(template, values) {
+    return template.replace(/\{([^}]+)\}/g, function (_, key) {
+      return values[key] === undefined ? "" : String(values[key]);
+    });
+  }
+
   function bindElements() {
+    el.languageToggle = document.getElementById("language-toggle");
     el.setup = document.getElementById("setup");
     el.test = document.getElementById("test");
     el.listenerId = document.getElementById("listener-id");
@@ -21,7 +65,8 @@
     el.resumeButton = document.getElementById("resume-button");
     el.clearButton = document.getElementById("clear-button");
     el.savedSummary = document.getElementById("saved-summary");
-    el.progress = document.getElementById("progress");
+    el.progressText = document.getElementById("progress-text");
+    el.progressBar = document.getElementById("progress-bar");
     el.elapsed = document.getElementById("elapsed");
     el.audio = document.getElementById("audio");
     el.rating = document.getElementById("rating");
@@ -32,6 +77,7 @@
   }
 
   function bindEvents() {
+    el.languageToggle.addEventListener("click", toggleLanguage);
     el.startButton.addEventListener("click", startTest);
     el.resumeButton.addEventListener("click", resumeTest);
     el.clearButton.addEventListener("click", clearSavedSession);
@@ -45,7 +91,7 @@
   function startTest() {
     const listenerId = normalizeListenerId(el.listenerId.value);
     if (!listenerId) {
-      alert("Please enter your name or listener ID.");
+      alert(t("enterListenerAlert"));
       return;
     }
     const startedAt = new Date().toISOString();
@@ -74,7 +120,7 @@
   }
 
   function clearSavedSession() {
-    if (!confirm("Clear the saved listening-test progress in this browser?")) return;
+    if (!confirm(t("clearConfirm"))) return;
     localStorage.removeItem(STORAGE_KEY);
     showSavedSession();
   }
@@ -89,7 +135,7 @@
       return;
     }
     const rated = Object.keys(saved.scores || {}).length;
-    el.savedSummary.textContent = "Saved progress: " + saved.listenerId + ", " + rated + "/" + saved.order.length + " ratings.";
+    el.savedSummary.textContent = formatText(t("savedProgress"), { listenerId: saved.listenerId, rated, total: saved.order.length });
     el.listenerId.value = saved.listenerId || "";
   }
 
@@ -103,10 +149,14 @@
   function renderItem(autoplay) {
     const item = currentItem();
     const score = state.scores[itemKey()];
-    el.progress.textContent = "Item " + (state.index + 1) + " of " + state.order.length;
+    el.progressText.textContent = formatText(t("progressText"), { current: state.index + 1, total: state.order.length });
+    el.progressBar.max = state.order.length;
+    el.progressBar.value = state.index + 1;
     updateElapsedTime();
-    el.audio.src = item.audio_path;
-    el.audio.load();
+    if (el.audio.getAttribute("src") !== item.audio_path) {
+      el.audio.src = item.audio_path;
+      el.audio.load();
+    }
     if (autoplay) {
       playCurrentAudio();
     }
@@ -128,15 +178,13 @@
 
   function recordScore(event) {
     if (event.target.name !== "score") return;
-    state.scores[itemKey()] = event.target.value;
-    state.ratedAt[itemKey()] = new Date().toISOString();
-    saveState();
-    renderItem();
+    setScore(event.target.value);
   }
 
   function handleKeyboard(event) {
     if (el.test.classList.contains("hidden")) return;
-    if (event.target && ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(event.target.tagName)) return;
+    if (event.target && ["TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
+    if (event.target && event.target.tagName === "INPUT" && event.target.type === "text") return;
 
     if (["1", "2", "3", "4", "5"].includes(event.key)) {
       event.preventDefault();
@@ -147,10 +195,17 @@
     if (event.key === "Enter") {
       event.preventDefault();
       nextItem();
+      return;
+    }
+
+    if (event.key.toLowerCase() === "r") {
+      event.preventDefault();
+      replayCurrentAudio();
     }
   }
 
   function setScore(score) {
+    pauseCurrentAudio();
     state.scores[itemKey()] = score;
     state.ratedAt[itemKey()] = new Date().toISOString();
     saveState();
@@ -175,14 +230,25 @@
     const playPromise = el.audio.play();
     if (playPromise && typeof playPromise.catch === "function") {
       playPromise.catch(function () {
-        el.status.textContent = "Press play to start this sample. " + saveStatusText();
+        el.status.textContent = formatText(t("autoplayBlocked"), { status: saveStatusText() });
       });
+    }
+  }
+
+  function replayCurrentAudio() {
+    el.audio.currentTime = 0;
+    playCurrentAudio();
+  }
+
+  function pauseCurrentAudio() {
+    if (!el.audio.paused) {
+      el.audio.pause();
     }
   }
 
   async function finishTest() {
     if (!allItemsRated()) {
-      alert("Please rate every item before finishing.");
+      alert(t("finishIncompleteAlert"));
       return;
     }
     state.finishedAt = new Date().toISOString();
@@ -190,10 +256,10 @@
     const csv = buildCsv();
     downloadCsv(csv);
     el.finishButton.disabled = true;
-    el.status.textContent = "Submitting results...";
+    el.status.textContent = t("submitting");
     stopElapsedTimer();
     const submitted = await submitResults(csv);
-    el.status.textContent = submitted ? "Finished. Results were submitted and a CSV backup was downloaded." : "Finished. CSV backup was downloaded, but automatic submission is not configured or failed.";
+    el.status.textContent = submitted ? t("submitted") : t("submitFailed");
     localStorage.removeItem(STORAGE_KEY);
   }
 
@@ -287,7 +353,7 @@
 
   function saveStatusText() {
     const rated = Object.keys(state.scores).length;
-    return "Progress is saved in this browser after each rating. Rated " + rated + "/" + state.order.length + ".";
+    return formatText(t("saveStatus"), { rated, total: state.order.length });
   }
 
   function startElapsedTimer() {
@@ -311,7 +377,7 @@
       return;
     }
     const seconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
-    el.elapsed.textContent = "Elapsed: " + formatElapsed(seconds);
+    el.elapsed.textContent = formatText(t("elapsedText"), { time: formatElapsed(seconds) });
   }
 
   function formatElapsed(totalSeconds) {
